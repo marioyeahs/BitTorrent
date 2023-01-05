@@ -1,5 +1,39 @@
 import asyncio, sys
 
+class Peer(object):
+    def __init__(self,host,port,file_queue):
+        self.host = host
+        self.port = port
+        self.file_queue = file_queue
+
+        # Denotes if peer is choking us
+        self.peer_choking = True
+
+        # Denotes if we hve informed our peer that we are interested
+        self.am_interested = False
+
+    async def downloaded(self):
+        reader, writer = await asyncio.open_connection(
+            self.host, self.port
+        )
+        handshake = b' '.join([
+            chr(19).encode(),
+            b'BitTorrent protocol',
+            (chr(0) * 8).encode(),
+            info_hash,
+            PEER_ID.encode()
+        ])
+
+        # Send handshake
+        writer.write(handshake)
+        await writer.drain()
+
+        # Read and validate response
+        peer_handshake = await reader.read(68)
+        self.validate(peer_handshake)
+
+        # Start exchanging messages...
+
 async def download(torrent_file):
 	
     # Read and parse ".torrent" file
