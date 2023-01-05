@@ -1,4 +1,5 @@
 import asyncio, sys
+import struct
 
 class Peer(object):
     def __init__(self,host,port,file_queue):
@@ -16,7 +17,7 @@ class Peer(object):
         reader, writer = await asyncio.open_connection(
             self.host, self.port
         )
-        handshake = b' '.join([
+        handshake = b''.join([
             chr(19).encode(),
             b'BitTorrent protocol',
             (chr(0) * 8).encode(),
@@ -33,6 +34,56 @@ class Peer(object):
         self.validate(peer_handshake)
 
         # Start exchanging messages...
+
+        buf = b'' # Hold data read from peer
+        while True:
+            resp = await reader.read(REQUEST_SIZE)
+            buf+= resp
+
+            while True:
+                if len(buf) < 4:
+                    break
+            
+                msg_message_length = self.get_message_message_length(buf)
+
+                if msg_message_length == 0:
+                    # Handle keep alive
+                    continue
+
+                msg_id = struct.unpack('>b', buf[4:5]) # 5th byte is
+
+                # ...Loping through peer messages
+
+                if msg_id == 0:
+                    # Handle choke
+                    pass
+                
+                elif msg_id == 1:
+                    # Handle unchoke
+                    await self.send_interested_message()
+                
+                elif msg_id == 2:
+                    # Handle interested
+                    pass
+                
+                elif msg_id == 3:
+                    # Handle not interested
+                    pass
+
+                elif msg_id == 4:
+                    # Handle have...
+                    pass
+
+                elif msg_id == 5:
+                    # Handle Bitfield
+                    pass
+
+                elif msg_id == 7:
+                    # Handle piece
+                    self.file_queue.enqueue(piece_data)
+
+                await self.request_a_piece()
+
 
 async def download(torrent_file):
 	
@@ -60,5 +111,5 @@ async def download(torrent_file):
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(download(sys.argv[1]))
-    loop.close()
 
+    loop.close()
