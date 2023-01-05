@@ -84,6 +84,19 @@ class Peer(object):
 
                 await self.request_a_piece()
 
+class FileSaver(object):
+    def __init__(self, file_queue):
+        self.file_queue = file_queue
+
+    async def start(self):
+        while True:
+            piece = await self.file_queue.get()
+
+            if not piece: # Poison pill
+                return
+            
+            await self.save(piece)
+
 
 async def download(torrent_file):
 	
